@@ -44,7 +44,7 @@ description: Plan and produce article covers, inline illustrations, concept post
 7. 制作正文配图时，读取 `references/illustration-archetypes.md`。
 8. 写任何成图提示词前，读取 `references/prompt-compiler.md`。
 9. 生成完成后，读取 `references/quality-gates.md` 并检查实际图片。
-10. 小红书封面或多页图文时，读取 `references/xiaohongshu-strategies.md`、`references/xiaohongshu-cover-archetypes.md` 和 `references/xiaohongshu-carousel-structures.md`。使用 `xiaohongshu-tutorial` 时还要读取 `references/xiaohongshu-tutorial-html.md`。
+10. 小红书封面或多页图文时，读取 `references/xiaohongshu-strategies.md`、`references/xiaohongshu-cover-archetypes.md` 和 `references/xiaohongshu-carousel-structures.md`。先按策略中的“先锁定文章动作，再写点击文案”确定主线，再比较直接表达与读者处境、行动悬念的适用性，并检查工具身份的文字层级。使用 `xiaohongshu-tutorial` 时还要读取 `references/xiaohongshu-tutorial-html.md`。
 11. 只有在任务路由仍不明确时，读取 `references/examples.md`。
 
 ## 任务路由
@@ -77,7 +77,7 @@ description: Plan and produce article covers, inline illustrations, concept post
 
 1. 用户提供参考图并要求接近参考图的视觉效果时，进入 `reference-led-cover`。如果同时提供完整提示词，完整提示词继续作为内容与硬约束协议。
 2. 用户提供完整提示词，或提示词中出现“高级概念海报”“核心主文字”“第一眼看到主题”“第二眼理解隐喻”等明确协议时，直接进入 `prompt-led-cover`，不重新选择主风格和文字策略。
-3. 当平台或视觉方向缺失时，只进行一次简短确认。先从文章中提取内容类型、核心主张、点击钩子、主要证据、视觉主体、标题长度和情绪，再推荐三个明确不同的封面方向。每个方向由一种主风格、一种封面结构和一种冲击机制组成，把推荐项放在第一位，并让用户可以回复数字。该次选择只决定封面主方向，内页自动继承封面的主色、字体行为、材质和图形语言。
+3. 平台可从任务推断时直接采用；视觉方向缺失时自主选定适合内容的方向。仅当用户要求先选方案，或缺项会实质改变用途且无法合理推断时，进行一次简短确认。先从文章中提取内容类型、核心主张、点击钩子、主要证据、视觉主体、标题长度和情绪，再推荐三个明确不同的封面方向。每个方向由一种主风格、一种封面结构和一种冲击机制组成，把推荐项放在第一位，并让用户可以回复数字。该次选择只决定封面主方向，内页自动继承封面的主色、字体行为、材质和图形语言。
 4. 当用户说“直接出图”“不用问”“自动决定”“按默认生成”或同义表达时，进入快速模式。说明采用的平台、比例、风格、配图密度和文字策略，然后继续。
 5. 当用户已经给出平台、比例和明确风格时，直接继续。
 6. 在同一任务的后续修改中，保留已选择的平台、构图、色彩、人物、场景和视觉语言，只修改用户点名的内容。
@@ -179,7 +179,7 @@ description: Plan and produce article covers, inline illustrations, concept post
 
 `xiaohongshu-tutorial` 和 `xiaohongshu-package` 默认在交付目录根部生成 `index.html`，集中展示发布标题、正文、标签、全部页面、页面顺序、导出状态、素材映射和质量检查。导出前可以在整体页中预览单页 HTML，导出后重新生成整体页并显示最终 PNG。整体页只承担审阅和交付，最终图片分别来自独立 HTML 页面源文件或经过契约检查的 AI 封面提示词，禁止把一个超长总览页面直接切割成发布图片。使用 `python -X utf8 scripts/build_xiaohongshu_preview.py <output-dir>` 生成审阅版，全部 PNG 导出后使用 `--require-images` 生成并校验最终交付版。
 
-整体交付预览页必须根据当前图文包动态调整视觉主题。每次生成或修改 `index.html` 时，重新读取 `requirements.json`、`brief.md`、`plan.md`、`qa.md`，并打开至少一张封面、一张机制或步骤页和一张风险或边界页，提取实际成图的主色、字体行为、材质、信息密度、圆角与线条语言。预览页的主背景、强调色、标题层级、状态标记、图片墙和详情区要与这些成图及文章内容属于同一视觉系统，不能沿用与当前包无关的通用白色图库或模板化后台风格。
+整体交付预览页使用当前图文包的视觉主题。首次建立预览或视觉方向改变时，读取尚未掌握或已变化的需求与计划，并检查已有的代表性页面；没有某类页面时无需补造。普通链接或文案修复仅复查受影响部分，提取实际成图的主色、字体行为、材质、信息密度、圆角与线条语言。预览页的主背景、强调色、标题层级、状态标记、图片墙和详情区要与这些成图及文章内容属于同一视觉系统，不能沿用与当前包无关的通用白色图库或模板化后台风格。
 
 预览页的内容结构也要由文章信息驱动：首屏展示文章核心主张和当前视觉锚点，状态区准确反映页面、PNG、HTML、素材和检查数量，图片卡片显示 `page_role`、信息职责、来源映射和可用操作，风险、适用边界与素材缺失要在审阅入口可见。推荐把主题 token 独立到本地 `preview-theme.css` 或等价的本地样式层，便于随 `style`、`palette_policy` 和文章类型变化而调整。所有资源使用相对路径，不依赖远程字体、脚本或接口，保留复制、放大、打开 HTML 和下载 PNG 等审阅功能。
 
@@ -214,7 +214,7 @@ description: Plan and produce article covers, inline illustrations, concept post
 
 其中 `{user-project-dir}` 是当前任务使用的用户设置项目目录。若运行环境没有提供项目目录，才回退到当前任务工作目录，并在完成报告中明确标注回退原因。
 
-在执行任何路由前建立任务输出目录，确保 prompt-only、revision 和仅规划任务也有明确的产物位置。prompt-only 没有图片时，导出目录指向提示词和元数据的保存目录；没有生成本地文件时，也要在完成报告中给出本次任务的目标导出目录并说明原因。
+需要保存或生成文件时建立输出目录。纯咨询、只读规划和仅在聊天交付提示词时无需创建空目录或完整生产文档。没有实际写入时明确说明未导出，不把计划路径当成已生成产物。
 
 目录结构：
 
@@ -243,7 +243,7 @@ article-visuals/{topic-slug}/
 
 在任何生图调用之前，按 `references/prompt-compiler.md` 为每项资产写完整提示词。禁止把临时行内提示词直接交给生图工具。
 
-保存提示词后运行 `scripts/validate_prompt_contract.py`。校验失败时停止，不得调用生图工具。至少检查比例、主风格、主文字、文字策略、文字可见性和禁止的降级路线。
+保存提示词后运行 `scripts/validate_prompt_contract.py`。校验失败时暂停该项生成，先修复提示词或元数据并重跑；不得带着失败结果生成，也不因此结束整个任务。至少检查比例、主风格、主文字、文字策略、文字可见性和禁止的降级路线。
 
 提示词文件必须包含以下元数据：
 
@@ -273,11 +273,11 @@ output: images/01-cover.png
 1. 用户当前请求指定的图片工具
 2. 当前运行环境提供的原生位图生成工具，Codex 环境优先使用 `imagegen`
 3. 唯一可用的其他位图生成工具
-4. 没有可用位图工具时，说明限制并交付提示词
+4. 没有可用位图工具时，检查已授权的确定性路线是否适用；仍无法完成则交付提示词及具体阻塞，明确成图尚未完成
 
 生成前必须确认提示词契约检查通过。用户要求可见文字时，禁止使用 `textless`、`reserved-title-zone` 或“画面不出现任何可见文字”作为替代策略，除非用户明确批准后续人工排字。
 
-当路由为 `xiaohongshu-tutorial` 时，按 `render_method` 分别执行。`imagegen` 封面先保存完整提示词并通过契约检查，再调用图片生成工具；`html` 页面先保存可复用的 HTML、React、CSS、Canvas 或内嵌 SVG 源文件，再使用浏览器渲染为最终 PNG。两种产物进入同一个 `images/` 序列和整体交付页。其他路由仍然禁止用 SVG、HTML、Canvas 或程序化绘图替代用户明确要求的位图生成。多张图片优先使用工具原生批量能力，其次并行调用，每批最多四张。生成或渲染失败时只重试失败项一次。
+当路由为 `xiaohongshu-tutorial` 时，按 `render_method` 分别执行。`imagegen` 封面先保存完整提示词并通过契约检查，再调用图片生成工具；`html` 页面先保存可复用的 HTML、React、CSS、Canvas 或内嵌 SVG 源文件，再使用浏览器渲染为最终 PNG。两种产物进入同一个 `images/` 序列和整体交付页。其他路由仍然禁止用 SVG、HTML、Canvas 或程序化绘图替代用户明确要求的位图生成。多张图片优先使用工具原生批量能力，其次并行调用，每批最多四张。生成或渲染失败时先判断原因。无变化的付费生成至多重试一次；本地渲染或契约错误可在有明确修复后继续验证。相同原因持续失败时更换可行方案或报告具体阻塞，保留其他已完成资产。
 
 ### 8. 检查真实产物
 
@@ -289,7 +289,7 @@ output: images/01-cover.png
 
 所有小红书图文任务运行 `python -X utf8 scripts/check_xiaohongshu_copy.py <output-dir>`。内部制作说明始终检查，作者第一人称配置额外检查旁观转述话术。脚本读取文案和 HTML 文本，不含 OCR，也不能判断 CSS 最终可见性；成图文字仍须实际检查。使用来源截图时，逐页核对素材编号、解释、清晰度、裁切完整性和来源真实性。错配、不可辨认或事实内容被改变时判定失败。
 
-文字错误、裁切错误或构图失败时，创建新的提示词版本和新的图片文件。保留旧候选用于比较。禁止通过程序化覆盖方式修补错误文字。
+文字错误、裁切错误或构图失败时，创建新的提示词版本和新的图片文件。保留旧候选用于比较。采用 AI 成图路线时，不擅自把用户要求的模型内文字换成后期覆盖。已选择 `html` 或其他确定性排字路线时，可直接修改文字图层并重新导出。
 
 完整图文包用 `delivery.json` 显式选择每页最终版本并锁定发布顺序，格式见 `references/delivery-contract.md`。旧候选继续保留，但不进入最终序列。脚本通过只表明对应自动检查完成；文字准确、事实对应和审美仍需检查真实图片。
 
