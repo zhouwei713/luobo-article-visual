@@ -130,6 +130,94 @@ class RegressionTests(unittest.TestCase):
         self.assertIn("object-fit:contain", document)
         self.assertIn("视觉验收请查看质量记录", document)
 
+    # ---- additions: copy rules, platform terms, validator alignment, imagegen helpers, source scan
+    def test_banned_patterns_fail_and_warn(self):
+        self.write("requirements.json", json.dumps({"banned_patterns": [
+            {"pattern": "——|—", "label": "破折号"},
+            {"pattern": "：", "label": "冒号", "level": "warn"}]}, ensure_ascii=False))
+        self.write("html/02.html", "<p>要点：一句话——出整套</p>")
+        out = io.StringIO()
+        with patch.object(sys, "argv", ["check", str(self.root)]), contextlib.redirect_stdout(out), \
+                patch.object(copy, "load_shared_config", return_value={}):
+            code = copy.main()
+        self.assertEqual(1, code)
+        self.assertIn("banned-pattern 破折号", out.getvalue())
+        self.assertIn("WARN", out.getvalue())
+
+    def test_warn_only_pattern_passes(self):
+        self.write("requirements.json", json.dumps({"banned_patterns": [{"pattern": "：", "label": "冒号", "level": "warn"}]}, ensure_ascii=False))
+        self.write("html/02.html", "<p>要点：一句话</p>")
+        out = io.StringIO()
+        with patch.object(sys, "argv", ["check", str(self.root)]), contextlib.redirect_stdout(out), \
+                patch.object(copy, "load_shared_config", return_value={}):
+            self.assertEqual(0, copy.main())
+
+    def test_xiaohongshu_platform_terms(self):
+        self.write("requirements.json", '{"platform":"xiaohongshu"}')
+        self.write("note.md", "## 标题\n测试\n## 正文\n后台回复设计获取\n## 标签\n#测试")
+        out = io.StringIO()
+        with patch.object(sys, "argv", ["check", str(self.root)]), contextlib.redirect_stdout(out), \
+                patch.object(copy, "load_shared_config", return_value={}):
+            self.assertEqual(1, copy.main())
+        self.assertIn("platform-xiaohongshu", out.getvalue())
+
+    def test_platform_terms_can_be_allowed(self):
+        self.write("requirements.json", '{"platform":"xiaohongshu","platform_terms_allowed":["二维码"]}')
+        self.write("html/02.html", "<p>二维码占位框</p>")
+        with patch.object(sys, "argv", ["check", str(self.root)]), contextlib.redirect_stdout(io.StringIO()), \
+                patch.object(copy, "load_shared_config", return_value={}):
+            self.assertEqual(0, copy.main())
+
+    def test_editorial_hierarchy_without_visual_mode_for_regular_style(self):
+        path = self.write("prompts/01.md", "---\nasset_id: 01\nmode: cover-only\nasset_type: cover\nplatform: wechat\nstyle: product-hero\naspect_ratio: 3:4\nvisible_text: true\ntext_policy: editorial-hierarchy\nexact_text: 正确标题\noutput: images/01.png\n---\n一级主标题“正确标题”。二级文字“副标题”。")
+        req = dict(self.requirements(), text_policy="editorial-hierarchy", allowed_text=["副标题"])
+        self.assertEqual([], contract.validate_prompt(req, path))
+
+    def test_tertiary_text_requires_guidance(self):
+        path = self.write("prompts/01.md", "---\nasset_id: 01\nmode: cover-only\nasset_type: cover\nplatform: wechat\nstyle: product-hero\naspect_ratio: 3:4\nvisible_text: true\ntext_policy: editorial-hierarchy\nexact_text: 正确标题\noutput: images/01.png\n---\n一级主标题“正确标题”。二级文字“副标题”。")
+        req = dict(self.requirements(), text_policy="editorial-hierarchy", tertiary_text=["关键词"])
+        errors = contract.validate_prompt(req, path)
+        self.assertTrue(any("三级" in e for e in errors))
+
+    def test_short_exact_with_supporting_text(self):
+        path = self.prompt("标题“正确标题”。小字“萝卜设计”。")
+        req = dict(self.requirements(), allowed_text=["萝卜设计"])
+        self.assertEqual([], contract.validate_prompt(req, path))
+
+    def test_imagegen_front_matter_and_ratio(self):
+        import imagegen
+        meta, body = imagegen.split_front_matter("---\naspect_ratio: 3:4\noutput: images/01.png\n---\n正文提示词")
+        self.assertEqual("3:4", meta["aspect_ratio"])
+        self.assertEqual("正文提示词", body)
+        self.assertAlmostEqual(0.75, imagegen.ratio_value("3:4"))
+        with self.assertRaises(imagegen.GenError):
+            imagegen.parse_target("1080*1440")
+
+    def test_imagegen_rejects_inline_key(self):
+        import imagegen
+        with patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(imagegen.GenError):
+                imagegen.Generator({"provider": "hiapi", "api_key": "secret"}, allow_inline_key=False)
+
+    def test_source_scan_flags_feishu(self):
+        import scan_source_images as scan
+        article = self.write("a.md", "# 标题\n说明文字\n![x](https://internal-api-drive-stream.feishu.cn/space/api/box/stream/download/authcode/?code=abc)\n\\[demo.mp4\\]\n")
+        out = io.StringIO()
+        with patch.object(sys, "argv", ["scan", str(article), "--manifest", str(self.root / "m.json")]), contextlib.redirect_stdout(out):
+            scan.main()
+        self.assertIn("expiring=1", out.getvalue())
+        self.assertIn("media-ref=1", out.getvalue())
+        data = json.loads((self.root / "m.json").read_text(encoding="utf-8"))
+        self.assertEqual("expiring", data["assets"][0]["availability"])
+
+    def test_preview_ignores_raw_candidates(self):
+        from PIL import Image
+        (self.root / "images").mkdir()
+        Image.new("RGB", (30, 40)).save(self.root / "images/01-cover.png")
+        Image.new("RGB", (30, 40)).save(self.root / "images/01-cover-raw.png")
+        stems = [p["stem"] for p in preview.find_pages(self.root)]
+        self.assertEqual(["01-cover"], stems)
+
 
 if __name__ == "__main__":
     unittest.main()

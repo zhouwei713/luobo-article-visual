@@ -1,5 +1,22 @@
 # 提示词编译器
 
+## 小红书 AI 封面字段适用性
+
+比例、准确文字、可见性、用户指定风格、输出路径和禁止项始终按需求契约检查。创意字段按所选机制填写：
+
+| impact_mechanism | 附加必需字段 |
+|---|---|
+| giant-type-perspective | depth_relation |
+| type-subject-interlock | hero_subject、title_subject_interlock |
+| foreground-thrust | hero_subject、depth_relation |
+| decisive-action | hero_subject、decisive_action |
+| scale-tension | hero_subject、depth_relation |
+| single-metaphor | hero_subject |
+| custom | design_rationale，具体说明自定义构图如何表达主题 |
+
+所有 AI 小红书封面仍需 impact_mechanism、visual_anchor、click_hook、safe_crop_zone、thumbnail_readability。未用于当前机制的设计字段可省略；必需字段不可用 N/A 等占位。旧版本包含全部字段的提示词仍兼容。下面的全字段示例用于复杂封面，不代表每张封面都需要动作、透视或标题穿插。
+
+
 把文章内容、平台目标、视觉风格和画面结构融合为一份完整提示词。禁止把多个模板原样拼接，禁止保留未解析占位符。
 
 ## 约束锁定与冲突阻断
@@ -113,7 +130,7 @@ output: images/01-cover.png
 ---
 ```
 
-小红书每张资产在需求契约和页面计划中记录 `render_method`。轮播卡片提示词还必须说明 `page_role`、`information_answer`、`visual_anchor`、`safe_crop_zone` 和本页唯一的主要阅读任务。AI 封面提示词必须写出 `impact_mechanism`、`hero_subject`、`decisive_action`、`depth_relation`、`title_subject_interlock`、点击钩子、缩略图轮廓和信息密度。内页提示词必须写出文章证据、步骤关系或结果信号。
+小红书每张资产在需求契约和页面计划中记录 `render_method`。轮播卡片提示词还必须说明 `page_role`、`information_answer`、`visual_anchor`、`safe_crop_zone` 和本页唯一的主要阅读任务。AI 封面提示词写出点击钩子、缩略图可读性与所选机制，并按本文件开头的字段表补充必要设计字段。内页提示词必须写出文章证据、步骤关系或结果信号。
 
 ## 文字策略
 
@@ -121,13 +138,25 @@ output: images/01-cover.png
 
 | 策略 | 使用条件 |
 |---|---|
-| `short-exact` | 主视觉标题很短，要求模型准确生成 |
+| `short-exact` | 主视觉标题很短，要求模型准确生成；可以另带至多三条辅助文字，全部写进 `allowed_text` 并在正文逐字出现 |
 | `editorial-hierarchy` | 文章封面需要一级主标题、二级副标题和少量真实关键词 |
 | `reserved-title-zone` | 用户明确允许后续人工排字，成图保留干净标题区 |
 | `textless` | X 传播图、人物场景或隐喻画面无需文字 |
 | `minimal-labels` | 正文信息图只使用必要短标签 |
 
 中文标题超过十二个汉字时，只有在用户允许缩短或后续人工排字时，才提炼视觉短标题或改用 `reserved-title-zone`。如果文章封面或参考图明确需要标题、副标题和模块标签的编辑层级，可以使用 `editorial-hierarchy`。一级主文字仍需逐字列出，二级和三级文字必须来自文章或用户提供的参考内容。禁止为了降低错字风险自动删除文章标题、项目名和核心模块。
+
+### 文字策略与校验脚本的对应关系
+
+`validate_prompt_contract.py` 按下表检查，写提示词时照此准备：
+
+| 策略 | 契约字段 | 提示词正文必须包含 |
+|---|---|---|
+| `short-exact` | `exact_text`，可选 `allowed_text`（不超过三条） | `exact_text` 和每条 `allowed_text` 逐字出现 |
+| `editorial-hierarchy` | `exact_text`、`allowed_text`，可选 `tertiary_text` | “一级主标题”或“一级核心主文字”、“二级”；设置了 `tertiary_text` 时还要有“三级”和每条三级文字 |
+| `editorial-hierarchy` 加 `high-concept-poster` | 额外需要 `visual_mode` | 同上 |
+
+只有一个主标题加一两行小字（品牌名、手机屏幕上的一句话）时用 `short-exact`；标题、副标题、模块标签三层都要时再用 `editorial-hierarchy`。
 
 ## 封面提示词结构
 

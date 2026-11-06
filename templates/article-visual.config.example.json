@@ -1,0 +1,26 @@
+{
+  "provider": "hiapi",
+  "model": "gpt-image-2.5-flare/text-to-image",
+  "api_key_env": "HIAPI_API_KEY",
+  "resolution": "2K",
+  "timeout": 300,
+  "banned_patterns": [
+    {
+      "pattern": "——|—",
+      "label": "破折号"
+    },
+    {
+      "pattern": "不是[^。！？\\n]{0,20}而是",
+      "label": "不是…而是句式"
+    },
+    {
+      "pattern": "[「」]",
+      "label": "角括号引号"
+    },
+    {
+      "pattern": "：",
+      "label": "冒号",
+      "level": "warn"
+    }
+  ]
+}

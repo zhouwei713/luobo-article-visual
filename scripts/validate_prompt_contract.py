@@ -32,13 +32,17 @@ REQUIRED_XHS_AI_COVER_FIELDS = (
     "impact_mechanism",
     "visual_anchor",
     "click_hook",
-    "hero_subject",
-    "decisive_action",
-    "depth_relation",
-    "title_subject_interlock",
     "safe_crop_zone",
     "thumbnail_readability",
 )
+XHS_MECHANISM_FIELDS = {
+    "giant-type-perspective": ("depth_relation",),
+    "type-subject-interlock": ("hero_subject", "title_subject_interlock"),
+    "foreground-thrust": ("hero_subject", "depth_relation"),
+    "decisive-action": ("hero_subject", "decisive_action"),
+    "scale-tension": ("hero_subject", "depth_relation"),
+    "single-metaphor": ("hero_subject",),
+}
 XHS_IMPACT_MECHANISMS = {
     "giant-type-perspective",
     "type-subject-interlock",
@@ -46,6 +50,7 @@ XHS_IMPACT_MECHANISMS = {
     "decisive-action",
     "scale-tension",
     "single-metaphor",
+    "custom",
 }
 
 
@@ -161,6 +166,14 @@ def validate_prompt(contract: dict, path: Path) -> list[str]:
             fail(errors, f"{path.name}: metadata impact_mechanism does not match contract")
         if meta.get("impact_mechanism", "") not in XHS_IMPACT_MECHANISMS:
             fail(errors, f"{path.name}: unsupported Xiaohongshu impact_mechanism")
+        mechanism = meta.get("impact_mechanism", "")
+        fields = XHS_MECHANISM_FIELDS.get(mechanism, ())
+        if mechanism == "custom":
+            fields = ("design_rationale",)
+        for key in fields:
+            value = meta.get(key, "").strip()
+            if not value or value.casefold() in {"n/a", "na", "none", "不适用", "无"}:
+                fail(errors, f"{path.name}: {mechanism} requires meaningful {key}")
 
     visible_text = bool(contract.get("visible_text", False))
     expected_policy = str(contract.get("text_policy", "")).strip()
@@ -189,12 +202,21 @@ def validate_prompt(contract: dict, path: Path) -> list[str]:
         if isinstance(allowed_text, str):
             allowed_text = [allowed_text]
         if expected_policy == "editorial-hierarchy":
-            if not str(contract.get("visual_mode", "")).strip():
-                fail(errors, f"{path.name}: editorial-hierarchy requires visual_mode")
+            # visual_mode is only mandatory for the editorial tech cover family
+            if expected_style == "high-concept-poster" and not str(contract.get("visual_mode", "")).strip():
+                fail(errors, f"{path.name}: editorial-hierarchy with high-concept-poster requires visual_mode")
             if "一级主标题" not in text and "一级核心主文字" not in text:
                 fail(errors, f"{path.name}: editorial-hierarchy is missing primary title hierarchy")
-            if "二级" not in text or "三级" not in text:
+            if "二级" not in text:
                 fail(errors, f"{path.name}: editorial-hierarchy is missing secondary hierarchy guidance")
+            tertiary = contract.get("tertiary_text", [])
+            if tertiary and "三级" not in text:
+                fail(errors, f"{path.name}: tertiary_text is set but the prompt has no 三级 guidance")
+            for phrase in ([tertiary] if isinstance(tertiary, str) else tertiary):
+                if str(phrase).strip() and str(phrase).strip() not in body:
+                    fail(errors, f"{path.name}: tertiary_text phrase is absent from prompt: {phrase!r}")
+        if expected_policy == "short-exact" and len(allowed_text) > 3:
+            fail(errors, f"{path.name}: short-exact allows at most 3 supporting phrases in allowed_text; use editorial-hierarchy")
         for phrase in allowed_text:
             phrase = str(phrase).strip()
             if phrase and phrase not in body:

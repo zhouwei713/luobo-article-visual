@@ -248,6 +248,7 @@ def find_pages(root: Path) -> list[dict[str, Path | str | None]]:
         path.stem: path
         for path in image_dir.iterdir()
         if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
+        and not re.search(r"-(raw|candidate|v\d+-raw)$", path.stem)
     } if image_dir.exists() else {}
     stems = sorted(set(html_files) | set(image_files), key=natural_key)
     return [
@@ -315,9 +316,14 @@ def render_page_card(
         links.append(f'<a href="{relative_url(html_path, root)}" target="_blank">打开 HTML</a>')
     if image_path:
         links.append(f'<a href="{relative_url(image_path, root)}" download>下载图片</a>')
+    contract_info = page.get("contract", {}) or {}
+    native = contract_info.get("native_dimensions")
+    generated = ""
+    if isinstance(native, list) and len(native) == 2 and native != contract_info.get("dimensions"):
+        generated = f"模型原生 {native[0]}x{native[1]}，交付前放大 x{contract_info.get('upscale', '?')}"
     metadata = "".join(
         f'<p><strong>{esc(label)}</strong>{esc(value)}</p>'
-        for label, value in (("素材", source), ("版式", layout)) if value
+        for label, value in (("素材", source), ("版式", layout), ("生成尺寸", generated)) if value
     )
     return f"""
       <article class="page-card">

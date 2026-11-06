@@ -108,7 +108,7 @@
 
 ## AI 封面契约
 
-使用 `imagegen` 时额外记录：
+使用 `imagegen` 时按 `prompt-compiler.md` 的机制字段表记录。下面是完整字段示例，动作、纵深和图文关系仅在所选机制需要时必填；`custom` 使用明确的 `design_rationale`：
 
 ```text
 render_method

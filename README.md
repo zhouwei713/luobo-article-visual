@@ -13,7 +13,7 @@
 在 Windows PowerShell 中复制完整 Skill 目录：
 
 ```powershell
-git clone https://github.com/zhouwei713/article-visual-director.git
+git clone https://github.com/zhouwei713/luobo-article-visual.git article-visual-director
 Copy-Item -Recurse -LiteralPath ".\article-visual-director" -Destination "$env:USERPROFILE\.codex\skills\"
 ```
 
@@ -293,3 +293,18 @@ AI 封面和 HTML 内页共享主色、字体气质、材质与图形语言。AI
 ## License
 
 本项目使用 [MIT License](./LICENSE)。
+
+## 生图接口与写作禁忌配置
+
+复制 `templates/article-visual.config.example.json` 到 `~/.config/article-visual-director/config.json`（或项目目录下的 `article-visual.config.json`），按需改 `provider` 和 `model`，密钥放进 `api_key_env` 指定的环境变量。已经给 luobo-design 或 luobo-ppt 配过接口的话，不配也能直接用那份。
+
+同一文件里的 `banned_patterns` 是长期写作禁忌，`check_xiaohongshu_copy.py` 每次都会检查。
+
+## 常用脚本
+
+```bash
+python scripts/scan_source_images.py article.md --manifest out/asset_manifest.json
+python scripts/imagegen.py --prompt-file out/prompts/01-cover.md --target 1080x1440
+python scripts/render_pages.py out
+python scripts/check_xiaohongshu_copy.py out
+```
